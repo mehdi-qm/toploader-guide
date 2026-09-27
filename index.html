@@ -47,6 +47,12 @@
   .back { background: transparent; color: var(--muted); font-size: 16px; font-weight: 600; padding: 10px; }
   .big-emoji { font-size: 72px; text-align: center; margin: 20px 0 0; }
   .center { text-align: center; }
+  label.f { display: block; font-weight: 700; margin-bottom: 16px; }
+  label.f input { display: block; width: 100%; margin-top: 6px; font: inherit; font-weight: 400; font-size: 18px;
+    padding: 14px; border: 2px solid #cfd3da; border-radius: 12px; background: #fff; color: var(--text); -webkit-appearance: none; }
+  label.f input:focus { outline: none; border-color: var(--navy); }
+  .err { color: var(--red); font-weight: 700; }
+  .summary { background: var(--bg); border-radius: 12px; padding: 12px 14px; margin: 16px 0 0; }
   button:active, .btn:active { transform: scale(.98); }
 </style>
 </head>
@@ -63,6 +69,12 @@ const PHONE = "+19179291264";
 
 // Every step from the Top Loader guide PDF, in order.
 const STEPS = [
+  { part: "First check", title: "Is the fridge ready for sample exchange?",
+    body: `<ol><li>Open the <b>Toploader app</b> on the computer.</li><li>Go to the <b>Sample Exchange</b> tab.</li><li>Click <b>“Is fridge ready for sample exchange?”</b></li></ol>
+      <p>✅ It says <b>YES</b> → tap Yes below and go on.</p>
+      <div class="stop">⛔ It says NO (or anything else) → do NOT start. Tap “I'm stuck”.</div>`,
+    img: "fridge-ready.png", cap: "Toploader app → Sample Exchange tab", ask: "Did it say YES?" },
+
   { part: "Before you start", title: "Get these things ready",
     body: `<ul><li>Clean gloves (a fresh pair)</li><li>The dust cover for the hole on top of the fridge</li><li>The ladder, next to the fridge</li><li>The sample box for the sample you take out</li></ul>
       <div class="warn">3 golden rules:<br>1. Clean gloves any time the fridge is open.<br>2. Never force a cable, clamp or the stick.<br>3. After the vacuum, the needle must stay on –1 bar. If it goes up, STOP and ask.</div>`,
@@ -151,38 +163,97 @@ const STEPS = [
 ];
 
 const $ = id => document.getElementById(id);
-let i = 0;
-try { i = Math.min(+localStorage.getItem("tl_step") || 0, STEPS.length); } catch (e) {}
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-function save() { try { localStorage.setItem("tl_step", i); } catch (e) {} }
+// i = -1 is the sign-in screen, 0..STEPS.length-1 are steps, STEPS.length is "All done".
+let i = -1;
+let who = null; // { name, when, samples, finished }
+try {
+  who = JSON.parse(localStorage.getItem("tl_who"));
+  if (who) i = Math.min(+localStorage.getItem("tl_step") || 0, STEPS.length);
+} catch (e) {}
+
+function save() {
+  try { localStorage.setItem("tl_step", i); localStorage.setItem("tl_who", JSON.stringify(who)); } catch (e) {}
+}
+
+function nowLocal() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16); // for <input type="datetime-local">
+}
+
+function pretty(v) {
+  const d = new Date(v);
+  return isNaN(d) ? v : d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
 
 // iPhone uses "&body=", Android uses "?body="
-function smsLink(step) {
-  const where = step ? `${step.part}, Step ${step.n ?? "0"}: "${step.title}"` : "the Top Loader";
-  const msg = `Hi Mehdi, I'm stuck at ${where}. Things do not look as usual. What should I do? I need help.`;
+function sms(msg) {
   const ios = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
   return `sms:${PHONE}${ios ? "&" : "?"}body=${encodeURIComponent(msg)}`;
 }
 
+function stuckLink(step) {
+  const where = step ? `${step.part}, Step ${step.n ?? "0"}: "${step.title}"` : "the start";
+  let msg = `Hi Mehdi, I'm stuck at ${where}. Things do not look as usual. What should I do? I need help.`;
+  if (who) msg += `\n\nLoading: ${who.samples}\nStarted: ${pretty(who.when)}\n– ${who.name}`;
+  return sms(msg);
+}
+
+function doneLink() {
+  return sms(`Hi Mehdi, I'm done ✅ Top Loader sample exchange is finished.\n\n` +
+    `Loaded sample: ${who.samples}\nStarted: ${pretty(who.when)}\nFinished: ${pretty(who.finished)}\n\n– ${who.name}`);
+}
+
 function fig(src, cap) {
-  return src ? `<figure><img src="img/${src}" alt="${cap}" loading="lazy"><figcaption>${cap}</figcaption></figure>` : "";
+  return src ? `<figure><img src="img/${src}" alt="${cap}" loading="lazy" onerror="this.parentNode.remove()"><figcaption>${cap}</figcaption></figure>` : "";
+}
+
+function renderStart() {
+  $("part").textContent = "Top Loader";
+  $("count").textContent = "";
+  $("bar").style.width = "0%";
+  const w = who || {};
+  $("card").innerHTML = `<h1>Let's start</h1>
+    <label class="f">Who are you?
+      <input id="f-name" autocomplete="name" placeholder="Your name" value="${esc(w.name || "")}"></label>
+    <label class="f">Date and time
+      <input id="f-when" type="datetime-local" value="${esc(w.when || nowLocal())}"></label>
+    <label class="f">What sample(s) are you loading?
+      <input id="f-samples" placeholder="e.g. X, Y, Z" value="${esc(w.samples || "")}"></label>
+    <p id="f-err" class="err" hidden>Please fill in all three.</p>`;
+  $("btns").innerHTML = `<button class="yes" id="go">Start ›</button>
+    <a class="btn help" href="${stuckLink(null)}">✋ I need help – text Mehdi</a>`;
+  $("go").onclick = () => {
+    const name = $("f-name").value.trim(), when = $("f-when").value, samples = $("f-samples").value.trim();
+    if (!name || !when || !samples) { $("f-err").hidden = false; return; }
+    who = { name, when, samples };
+    i = 0; render();
+  };
 }
 
 function render() {
   save();
   window.scrollTo(0, 0);
+  if (i < 0) return renderStart();
+
   const total = STEPS.length;
   $("bar").style.width = (i / total * 100) + "%";
 
   if (i >= total) {
+    if (!who.finished) { who.finished = nowLocal(); save(); }
     $("part").textContent = "Finished";
     $("count").textContent = "";
-    $("card").innerHTML = `<div class="big-emoji">✅</div><h1 class="center">All done!</h1>
-      <p class="center">The new sample is in.<br>You can take your gloves off now.</p>`;
-    $("btns").innerHTML = `<button class="yes" id="restart">Start over</button>
+    $("card").innerHTML = `<div class="big-emoji">✅</div><h1 class="center">All done, ${esc(who.name)}!</h1>
+      <p class="center">The new sample is in.<br>You can take your gloves off now.</p>
+      <div class="summary"><b>Loaded:</b> ${esc(who.samples)}<br><b>Started:</b> ${esc(pretty(who.when))}<br><b>Finished:</b> ${esc(pretty(who.finished))}</div>
+      <div class="ask">Last thing: tap below and press Send to tell Mehdi you're done.</div>`;
+    $("btns").innerHTML = `<a class="btn yes" href="${doneLink()}">📩 Text Mehdi "I'm done"</a>
+      <button class="back" id="restart">Start a new exchange</button>
       <button class="back" id="prev">‹ Back to last step</button>`;
-    $("restart").onclick = () => { i = 0; render(); };
-    $("prev").onclick = () => { i--; render(); };
+    $("restart").onclick = () => { who = { name: who.name }; i = -1; render(); };
+    $("prev").onclick = () => { who.finished = null; i--; render(); };
     return;
   }
 
@@ -192,13 +263,13 @@ function render() {
   $("card").innerHTML =
     (s.n ? `<div class="num">${s.n}</div>` : "") +
     `<h1>${s.title}</h1>${s.body}${fig(s.img, s.cap)}${fig(s.img2, s.cap2)}
-     <div class="ask">${s.n ? "Did you do this step?" : "Do you have everything?"}</div>`;
+     <div class="ask">${s.ask || (s.n ? "Did you do this step?" : "Do you have everything?")}</div>`;
   $("btns").innerHTML =
     `<button class="yes" id="yes">✓ Yes, done</button>
-     <a class="btn help" href="${smsLink(s)}">✋ I'm stuck – text Mehdi</a>
-     ${i > 0 ? `<button class="back" id="prev">‹ Back</button>` : ""}`;
+     <a class="btn help" href="${stuckLink(s)}">✋ I'm stuck – text Mehdi</a>
+     <button class="back" id="prev">‹ Back</button>`;
   $("yes").onclick = () => { i++; render(); };
-  if (i > 0) $("prev").onclick = () => { i--; render(); };
+  $("prev").onclick = () => { i--; render(); };
 }
 
 render();
