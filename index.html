@@ -70,10 +70,11 @@ const PHONE = "+19179291264";
 // Every step from the Top Loader guide PDF, in order.
 const STEPS = [
   { part: "First check", title: "Is the fridge ready for sample exchange?",
-    body: `<ol><li>Open the <b>Toploader app</b> on the computer.</li><li>Go to the <b>Sample Exchange</b> tab.</li><li>Click <b>“Is fridge ready for sample exchange?”</b></li></ol>
-      <p>✅ It says <b>YES</b> → tap Yes below and go on.</p>
-      <div class="stop">⛔ It says NO (or anything else) → do NOT start. Tap “I'm stuck”.</div>`,
-    img: "fridge-ready.png", cap: "Toploader app → Sample Exchange tab", ask: "Did it say YES?" },
+    body: `<ol><li>On the computer, open the <b>Toploader app</b> (Magneto-Transport Measurement System).</li><li>Click the <b>Sample Exchange</b> tab (top right).</li><li>Click the big blue <b>“IS FRIDGE READY FOR SAMPLE EXCHANGE?”</b> button.</li></ol>
+      <p>✅ Green box says <b>“YES — safe to exchange the sample”</b> and every check says <b>OK</b> → tap Yes below.</p>
+      <div class="stop">⛔ Anything else (NO, red, or a check not OK) → do NOT start. Tap “I'm stuck”.</div>`,
+    img: "fridge-ready-yes.jpg", cap: "What YES looks like",
+    img2: "fridge-ready.jpg", cap2: "The whole screen. Tap to zoom.", ask: "Did it say YES?" },
 
   { part: "Before you start", title: "Get these things ready",
     body: `<ul><li>Clean gloves (a fresh pair)</li><li>The dust cover for the hole on top of the fridge</li><li>The ladder, next to the fridge</li><li>The sample box for the sample you take out</li></ul>
@@ -207,7 +208,7 @@ function doneLink() {
 }
 
 function fig(src, cap) {
-  return src ? `<figure><img src="img/${src}" alt="${cap}" loading="lazy" onerror="this.parentNode.remove()"><figcaption>${cap}</figcaption></figure>` : "";
+  return src ? `<figure><a href="img/${src}" target="_blank"><img src="img/${src}" alt="${cap}" loading="lazy" onerror="this.closest('figure').remove()"></a><figcaption>${cap}</figcaption></figure>` : "";
 }
 
 function renderStart() {
