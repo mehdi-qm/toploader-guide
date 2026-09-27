@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f2a44">
+<title>Top Loader Steps</title>
+<style>
+  :root {
+    --navy: #1f2a44; --green: #1a9e5c; --red: #d62828; --amber: #fff4d6;
+    --bg: #f4f5f7; --card: #fff; --text: #1b1b1b; --muted: #666;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.45;
+    padding: env(safe-area-inset-top) 0 0;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; padding: 12px 16px 16px; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  header .part { font-size: 14px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: .04em; flex: 1; }
+  header .count { font-size: 14px; color: var(--muted); }
+  .bar { height: 8px; background: #dde0e6; border-radius: 99px; overflow: hidden; margin-bottom: 14px; }
+  .bar > div { height: 100%; background: var(--green); transition: width .3s; }
+  .card { background: var(--card); border-radius: 16px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); flex: 1; }
+  .num { display: inline-flex; width: 40px; height: 40px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; font-size: 20px; align-items: center; justify-content: center; margin-bottom: 8px; }
+  h1 { font-size: 26px; line-height: 1.2; margin: 0 0 12px; }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 10px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  .warn { background: var(--amber); border-left: 5px solid #e0a100; padding: 10px 12px; border-radius: 8px; margin: 12px 0; font-weight: 600; }
+  .stop { background: #fde8e8; border-left: 5px solid var(--red); padding: 10px 12px; border-radius: 8px; margin: 12px 0; font-weight: 600; }
+  figure { margin: 14px 0 4px; }
+  figure img { width: 100%; border-radius: 12px; display: block; background: #eee; }
+  figcaption { font-size: 15px; color: var(--muted); text-align: center; margin-top: 6px; }
+  .ask { font-size: 20px; font-weight: 700; text-align: center; margin: 18px 0 10px; }
+  .btns { display: flex; flex-direction: column; gap: 10px; margin-top: 14px;
+    position: sticky; bottom: 0; background: var(--bg); padding: 10px 0 calc(6px + env(safe-area-inset-bottom)); }
+  button, .btn {
+    font: inherit; font-weight: 800; border: 0; border-radius: 14px; padding: 18px; font-size: 20px;
+    cursor: pointer; text-align: center; text-decoration: none; display: block; width: 100%;
+  }
+  .yes { background: var(--green); color: #fff; }
+  .help { background: #fff; color: var(--red); border: 3px solid var(--red); }
+  .back { background: transparent; color: var(--muted); font-size: 16px; font-weight: 600; padding: 10px; }
+  .big-emoji { font-size: 72px; text-align: center; margin: 20px 0 0; }
+  .center { text-align: center; }
+  button:active, .btn:active { transform: scale(.98); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="part" id="part"></div><div class="count" id="count"></div></header>
+  <div class="bar"><div id="bar"></div></div>
+  <div class="card" id="card"></div>
+  <div class="btns" id="btns"></div>
+</div>
+
+<script>
+const PHONE = "+19179291264";
+
+// Every step from the Top Loader guide PDF, in order.
+const STEPS = [
+  { part: "Before you start", title: "Get these things ready",
+    body: `<ul><li>Clean gloves (a fresh pair)</li><li>The dust cover for the hole on top of the fridge</li><li>The ladder, next to the fridge</li><li>The sample box for the sample you take out</li></ul>
+      <div class="warn">3 golden rules:<br>1. Clean gloves any time the fridge is open.<br>2. Never force a cable, clamp or the stick.<br>3. After the vacuum, the needle must stay on –1 bar. If it goes up, STOP and ask.</div>`,
+    img: "map.jpg", cap: "1 top of fridge · 2 vacuum pump · 3 pump hose joins fridge · 4 helium tank · 5 ladder" },
+
+  // ---------- Part 1 ----------
+  { part: "Part 1 · Take OUT", n: 1, title: "Make sure the black VTI valve is CLOSED",
+    body: `<p>The black knob with the red top, on top of the fridge (circled).</p><p>Leave it <b>CLOSED</b> for now so outside air and dust can't get in.</p>`,
+    img: "vti-valve.jpg", cap: "The black VTI valve" },
+  { part: "Part 1 · Take OUT", n: 2, title: "Connect the vacuum pump to the tube",
+    body: `<p>Attach the pump hose to the tube. Make sure it is on firmly.</p>`,
+    img: "pump-hose.jpg", cap: "Arrow: where the hose joins the fridge. P = the pump." },
+  { part: "Part 1 · Take OUT", n: 3, title: "Turn the pump ON for at least 1 minute",
+    body: `<p>Press the pump's power switch (circled).</p><p>Leave it on for <b>at least 1 minute</b>.</p><p>Then turn the pump <b>OFF</b>.</p>`,
+    img: "pump-switch.jpg", cap: "The pump's power switch" },
+  { part: "Part 1 · Take OUT", n: 4, title: "Open the helium tank",
+    body: `<ol><li>Open the <b>big handle</b> on top of the tank.</li><li>Open the <b>small black valve</b>.</li><li>Check the <b>adjuster knob</b> is lined up. <b>Do not turn it.</b></li></ol>`,
+    img: "helium-tank.jpg", cap: "1 = big handle · 2 = small valve · 3 = adjuster knob" },
+  { part: "Part 1 · Take OUT", n: 5, title: "Cleaning round 1",
+    body: `<p>Use the <b>helium line valve</b> (small black handle on the helium pipe near the floor).</p>
+      <ol type="a"><li><b>OPEN</b> it (handle <b>along</b> the pipe). Wait 1 minute.</li><li><b>CLOSE</b> it (handle <b>across</b> the pipe).</li><li>Turn the vacuum pump <b>ON</b>.</li></ol>`,
+    img: "line-valve.jpg", cap: "Top: CLOSED (across) · Bottom: OPEN (along)" },
+  { part: "Part 1 · Take OUT", n: 6, title: "Cleaning round 2 (same as round 1)",
+    body: `<ol type="a"><li><b>OPEN</b> the helium line valve (along the pipe). Wait 1 minute.</li><li><b>CLOSE</b> it (across the pipe).</li><li>Vacuum pump <b>ON</b>.</li></ol>`,
+    img: "line-valve.jpg", cap: "Top: CLOSED · Bottom: OPEN" },
+  { part: "Part 1 · Take OUT", n: 7, title: "Cleaning round 3: OPEN and LEAVE IT OPEN",
+    body: `<p><b>OPEN</b> the helium line valve (along the pipe) for 1 minute.</p><div class="warn">Do NOT close it this time. Leave it OPEN, like the photo.</div>`,
+    img: "line-valve-open.jpg", cap: "Leave it like this: OPEN" },
+  { part: "Part 1 · Take OUT", n: 8, title: "Pressure needle must stay on –1 bar",
+    body: `<p>Watch the needle for a few seconds. It must sit still on <b>–1 bar</b>.</p>
+      <p>✅ Stays on –1 bar → all good, tap Yes.</p>
+      <div class="stop">⛔ Needle goes up → air is leaking in. STOP and tap "I'm stuck".</div>
+      <p style="color:var(--muted)">No photo yet. Ask your trainer which needle to watch.</p>` },
+  { part: "Part 1 · Take OUT", n: 9, title: "Unplug the black cable and the orange “Probe” cable",
+    body: `<p><b>A</b> = black cable. <b>B</b> = orange cable with the “Probe” label.</p><p>Hold the <b>metal ring</b> on the plug. Do not pull the wire. Pull straight out, gently.</p><div class="warn">Never force them.</div>`,
+    img: "cables.jpg", cap: "A = black cable · B = orange Probe cable",
+    img2: "probe-plug.jpg", cap2: "Hold here (circled). Do not pull the wire." },
+  { part: "Part 1 · Take OUT", n: 10, title: "OPEN the black VTI valve",
+    body: `<p>This lets the clean helium into the fridge.</p><p>You should see the needle go up and <b>pass 0</b>, then hear a <b>soft hiss</b> and feel gas blowing out at the top. That is good.</p>`,
+    img: "vti-valve.jpg", cap: "The black VTI valve",
+    img2: "needle-zero.jpg", cap2: "The needle has just passed 0" },
+  { part: "Part 1 · Take OUT", n: 11, title: "Put on your clean gloves NOW",
+    body: `<p>From now on the fridge is open.</p><div class="warn">Gloves stay on until the very end.</div>` },
+  { part: "Part 1 · Take OUT", n: 12, title: "Open the ring clamp",
+    body: `<p>Turn the small wing-screw (arrow) to loosen the ring clamp, then take the clamp off. Go slowly.</p><div class="warn">Under it is a thin black sealing ring. Keep it clean. Don't drop, stretch or lose it.</div>`,
+    img: "ring-lock.jpg", cap: "The ring lock. Arrow = wing-screw",
+    img2: "sealing-ring.jpg", cap2: "The black sealing ring (circled)" },
+  { part: "Part 1 · Take OUT", n: 13, title: "Place the ladder and climb up",
+    body: `<p>Make sure the ladder is steady first.</p><p>Keep one hand free for the stick.</p>` },
+  { part: "Part 1 · Take OUT", n: 14, title: "Pull the stick straight up and out",
+    body: `<p>Pull slowly and keep it perfectly straight, like a straw out of a bottle.</p><div class="warn">Do not bend it. Do not let it hit anything.</div>` },
+  { part: "Part 1 · Take OUT", n: 15, title: "Hang the stick on the hanger",
+    body: `<p>Hang it on the hanger near the ceiling so it hangs straight down.</p>`,
+    img: "hanger.jpg", cap: "1 = hanger · 2 = stick hanging" },
+  { part: "Part 1 · Take OUT", n: 16, title: "Right away: dust cover on the hole",
+    body: `<p>Cover the hole on top of the fridge immediately so no dust falls in.</p>`,
+    img: "dust-cover.jpg", cap: "The dust cover in place (circled)" },
+  { part: "Part 1 · Take OUT", n: 17, title: "Climb down the ladder",
+    body: `<p>Slowly. Keep your gloves on.</p>` },
+  { part: "Part 1 · Take OUT", n: 18, title: "Take the sample off the bottom of the stick",
+    body: `<p>Use your thumbs and pointer fingers to grab it gently from the sides.</p><p>Put it in the <b>sample box</b>.</p>` },
+
+  // ---------- Part 2 ----------
+  { part: "Part 2 · Put IN", n: 1, title: "Keep your clean gloves on",
+    body: `<p>Old sample is out. 👍</p><p>Do not take your gloves off until the end.</p>` },
+  { part: "Part 2 · Put IN", n: 2, title: "Put the new sample on the bottom of the stick",
+    body: `<p>Grab it from the sides with thumbs and pointer fingers and place it.</p><div class="warn">The V-cut on the sample holder goes on the side with the dot (it is marked).</div>` },
+  { part: "Part 2 · Put IN", n: 3, title: "Climb the ladder",
+    body: `<p>Make sure it is steady first.</p>` },
+  { part: "Part 2 · Put IN", n: 4, title: "Take the dust cover off the hole",
+    body: `<p>Put it somewhere clean.</p>` },
+  { part: "Part 2 · Put IN", n: 5, title: "Put the stick straight down into the fridge",
+    body: `<p>Go slowly and keep it perfectly straight.</p><div class="warn">Do not bend it. Do not force it.</div>` },
+  { part: "Part 2 · Put IN", n: 6, title: "Close the ring clamp",
+    body: `<p>First check the black sealing ring is <b>flat and in place</b>.</p><p>Then put the clamp back and tighten the wing-screw.</p><div class="warn">Snug is enough. Do not over-tighten.</div>`,
+    img: "ring-lock.jpg", cap: "Check the sealing ring before you close this" },
+  { part: "Part 2 · Put IN", n: 7, title: "CLOSE the black VTI valve",
+    body: `<p>The hissing and blowing will stop.</p>`,
+    img: "vti-valve.jpg", cap: "The black VTI valve" },
+  { part: "Part 2 · Put IN", n: 8, title: "Plug the black and orange “Probe” cables back in",
+    body: `<p>Push each plug in gently and turn its metal ring to lock it.</p><div class="warn">Never force them. If a plug won't go in, turn it a little until it lines up.</div>`,
+    img: "cables.jpg", cap: "A = black cable · B = orange Probe cable" },
+  { part: "Part 2 · Put IN", n: 9, title: "Close the helium tank",
+    body: `<p>Close <b>1</b> (big handle on top) and <b>2</b> (small valve).</p><p>Leave the adjuster knob <b>3</b> alone.</p>`,
+    img: "helium-tank.jpg", cap: "1 = big handle · 2 = small valve" },
+];
+
+const $ = id => document.getElementById(id);
+let i = 0;
+try { i = Math.min(+localStorage.getItem("tl_step") || 0, STEPS.length); } catch (e) {}
+
+function save() { try { localStorage.setItem("tl_step", i); } catch (e) {} }
+
+// iPhone uses "&body=", Android uses "?body="
+function smsLink(step) {
+  const where = step ? `${step.part}, Step ${step.n ?? "0"}: "${step.title}"` : "the Top Loader";
+  const msg = `Hi Mehdi, I'm stuck at ${where}. Things do not look as usual. What should I do? I need help.`;
+  const ios = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  return `sms:${PHONE}${ios ? "&" : "?"}body=${encodeURIComponent(msg)}`;
+}
+
+function fig(src, cap) {
+  return src ? `<figure><img src="img/${src}" alt="${cap}" loading="lazy"><figcaption>${cap}</figcaption></figure>` : "";
+}
+
+function render() {
+  save();
+  window.scrollTo(0, 0);
+  const total = STEPS.length;
+  $("bar").style.width = (i / total * 100) + "%";
+
+  if (i >= total) {
+    $("part").textContent = "Finished";
+    $("count").textContent = "";
+    $("card").innerHTML = `<div class="big-emoji">✅</div><h1 class="center">All done!</h1>
+      <p class="center">The new sample is in.<br>You can take your gloves off now.</p>`;
+    $("btns").innerHTML = `<button class="yes" id="restart">Start over</button>
+      <button class="back" id="prev">‹ Back to last step</button>`;
+    $("restart").onclick = () => { i = 0; render(); };
+    $("prev").onclick = () => { i--; render(); };
+    return;
+  }
+
+  const s = STEPS[i];
+  $("part").textContent = s.part;
+  $("count").textContent = `${i + 1} / ${total}`;
+  $("card").innerHTML =
+    (s.n ? `<div class="num">${s.n}</div>` : "") +
+    `<h1>${s.title}</h1>${s.body}${fig(s.img, s.cap)}${fig(s.img2, s.cap2)}
+     <div class="ask">${s.n ? "Did you do this step?" : "Do you have everything?"}</div>`;
+  $("btns").innerHTML =
+    `<button class="yes" id="yes">✓ Yes, done</button>
+     <a class="btn help" href="${smsLink(s)}">✋ I'm stuck – text Mehdi</a>
+     ${i > 0 ? `<button class="back" id="prev">‹ Back</button>` : ""}`;
+  $("yes").onclick = () => { i++; render(); };
+  if (i > 0) $("prev").onclick = () => { i--; render(); };
+}
+
+render();
+</script>
+</body>
+</html>
