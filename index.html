@@ -37,6 +37,10 @@
   figure a { display: inline-block; max-width: 100%; }
   figure img { max-width: 100%; max-height: 55vh; width: auto; border-radius: 10px; display: block; margin: 0 auto; }
   figure img.wide { width: 100%; }
+  ul.todo { list-style: none; padding: 0; margin: 4px 0 12px; }
+  ul.todo li { position: relative; padding: 8px 0 8px 30px; border-bottom: 1px solid #eee; }
+  ul.todo li:last-child { border-bottom: 0; }
+  ul.todo li::before { content: "☐"; position: absolute; left: 0; top: 6px; font-size: 20px; color: var(--navy); }
   figcaption { font-size: 14px; color: var(--muted); text-align: center; margin-top: 6px; }
   .timer { text-align: center; margin: 18px 0 6px; }
   .timer .clock { font-size: 64px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--navy); line-height: 1; }
@@ -75,180 +79,138 @@
 <script>
 const PHONE = "+19179291264";
 
-// Repeated actions, worded exactly as in quick_checklist_toploader.pdf
-const PUMP_OPEN   = `<b>OPEN</b> the pump valve (counter-clockwise)`;
-const PUMP_CLOSE  = `<b>CLOSE</b> the pump valve (clockwise, SHUT)`;
-const LINE_OPEN   = `<b>OPEN</b> the helium in-line valve (handle <b>ALONG</b> the pipe)`;
-const LINE_CLOSE  = `<b>CLOSE</b> the helium in-line valve (handle <b>ACROSS</b> the pipe)`;
-const WAIT_1MIN   = ["Wait 1 min (use the timer)", { timer: 60 }];
-const WAIT_10S    = ["Wait 10 s (use the timer)", { timer: 10 }];
-const NOT_READY   = { stop: "Not YES, or any line not OK → STOP. Do not start. Wait or ask." };
+// Repeated actions, based on "quick_checklist_toploader (1).pdf"
+const PUMP_OPEN_WAIT = `<b>OPEN</b> the pump valve (counter-clockwise) and wait <b>30 s</b>`;
+const PUMP_CLOSE     = `<b>CLOSE</b> the pump valve (clockwise, SHUT)`;
+const LINE_OPEN_WAIT = `<b>OPEN</b> the helium in-line valve (handle <b>ALONG</b> the pipe) and wait <b>5 s</b>`;
+const LINE_CLOSE     = `<b>CLOSE</b> the helium in-line valve (handle <b>ACROSS</b> the pipe)`;
+const LINE_TO_ZERO   = `<b>OPEN</b> the helium in-line valve until the gauge shows <b>0 bar</b>`;
+const TIMER_HINT     = "When the timer is done, tap Yes.";
 
-// Step N of the PDF is STEPS[N-1]. Photo for step N is img/sNNN.jpg (none for timer-only steps).
+// Each screen lists the PDF step numbers it covers (p). Photos come from img/sNNN.jpg,
+// one per PDF step; steps without a photo in the PDF are skipped automatically.
 const STEPS = [
   // ---------- Stage A · Top Loader · Unload + Load ----------
-  /* 1 */ `Click the <b>Sample Exchange</b> tab`,
-  /* 2 */ `Click <b>“IS FRIDGE READY FOR SAMPLE EXCHANGE?”</b>`,
-  /* 3 */ [`Check: green box says <b>YES</b>`, NOT_READY],
-  /* 4 */ [`Check: every line says <b>OK</b>`, NOT_READY],
-  /* 5 */ `Check: black VTI valve is <b>CLOSED</b>`,
-  /* 6 */ `Check: helium in-line valve is <b>CLOSED</b> (handle <b>ACROSS</b> the pipe)`,
-  /* 7 */ `Attach the rough pump hose firmly`,
-  /* 8 */ `Switch the rough pump <b>ON</b> (leave it ON)`,
-  /* 9 */ PUMP_OPEN,
-  /* 10 */ WAIT_1MIN,
-  /* 11 */ PUMP_CLOSE,
-  /* 12 */ `<b>OPEN</b> the big cylinder handle (counter-clockwise, to the LEFT)`,
-  /* 13 */ `<b>OPEN</b> the small black valve (counter-clockwise)`,
-  /* 14 */ `Check: adjuster knob 3 is lined up. <b>Do not turn it</b>`,
-  /* 15 */ LINE_OPEN,
-  /* 16 */ WAIT_10S,
-  /* 17 */ LINE_CLOSE,
-  /* 18 */ PUMP_OPEN,
-  /* 19 */ WAIT_1MIN,
-  /* 20 */ PUMP_CLOSE,
-  /* 21 */ LINE_OPEN,
-  /* 22 */ WAIT_10S,
-  /* 23 */ LINE_CLOSE,
-  /* 24 */ PUMP_OPEN,
-  /* 25 */ WAIT_1MIN,
-  /* 26 */ PUMP_CLOSE,
-  /* 27 */ `<b>OPEN</b> the helium in-line valve and <b>LEAVE IT OPEN</b>`,
-  /* 28 */ `Unplug cable <b>A</b> (black). Grab the metal ring, not the wire`,
-  /* 29 */ `Unplug cable <b>B</b> (orange “Probe”). Grab the metal ring`,
-  /* 30 */ `<b>OPEN</b> the black VTI valve`,
-  /* 31 */ `Check: needle passes 0 and you hear a hiss`,
-  /* 32 */ `Put on clean gloves 🧤`,
-  /* 33 */ `Loosen the KF clamp wing-screw`,
-  /* 34 */ `Take the KF clamp off`,
-  /* 35 */ `Place the ladder. Check it is steady`,
-  /* 36 */ `Climb up the ladder`,
-  /* 37 */ `Hold the top of the probe stick firmly`,
-  /* 38 */ `Lift it straight up, slowly, all the way out`,
-  /* 39 */ `Hang the probe stick on the hanger`,
-  /* 40 */ `Check the O-ring. If it moved, put it back and align it`,
-  /* 41 */ `Put the dust cover on the hole, right away`,
-  /* 42 */ `Climb down the ladder`,
-  /* 43 */ `Grab the sample from the sides and pull it down (tweezers if cold)`,
-  /* 44 */ `Put the sample in the sample box`,
-  /* 45 */ `Keep your gloves on 🧤`,
-  /* 46 */ `Find the black dot on the probe stick`,
-  /* 47 */ `Mount the sample holder: V-cut side → black dot`,
-  /* 48 */ `Climb up the ladder (check it is steady)`,
-  /* 49 */ `Take the dust cover off the hole`,
-  /* 50 */ `Hang the dust cover on the side of the fridge`,
-  /* 51 */ `Lower the probe stick straight down into the fridge`,
-  /* 52 */ `Check: O-ring sits flat and in place`,
-  /* 53 */ `Put the KF clamp back on`,
-  /* 54 */ `Tighten the wing-screw. Snug, not over-tight`,
-  /* 55 */ `Check: you hear helium blowing out of the VTI valve`,
-  /* 56 */ `Plug in cable <b>A</b> (black). Turn the ring to lock`,
-  /* 57 */ `Plug in cable <b>B</b> (orange “Probe”). Hold the metal body`,
-  /* 58 */ `Climb down the ladder`,
-  /* 59 */ LINE_CLOSE,
-  /* 60 */ PUMP_OPEN,
-  /* 61 */ WAIT_1MIN,
-  /* 62 */ `Check: needle reaches <b>–1 bar</b>`,
-  /* 63 */ PUMP_CLOSE,
-  /* 64 */ `<b>LEAK CHECK:</b> watch the gauge`,
-  /* 65 */ ["Wait 2 min (use the timer)", { timer: 120 }],
-  /* 66 */ [`Check: needle stayed on <b>–1 bar</b>`, {
-            stop: "Needle went up = LEAK → open KF clamp, clean O-ring with cloth + IPA, close clamp, go back to step 59.",
-            jump: 59, jumpLabel: "Needle went up → back to step 59" }],
-  /* 67 */ `<b>OPEN</b> the helium in-line valve until the gauge shows <b>0 bar</b>`,
-  /* 68 */ LINE_CLOSE,
-  /* 69 */ PUMP_OPEN,
-  /* 70 */ WAIT_1MIN,
-  /* 71 */ PUMP_CLOSE,
-  /* 72 */ `<b>OPEN</b> the helium in-line valve until the gauge shows <b>0 bar</b>`,
-  /* 73 */ LINE_CLOSE,
-  /* 74 */ PUMP_OPEN,
-  /* 75 */ WAIT_1MIN,
-  /* 76 */ PUMP_CLOSE,
-  /* 77 */ `Switch the rough pump <b>OFF</b>`,
-  /* 78 */ `<b>OPEN</b> the helium in-line valve slowly until the needle is at <b>–0.2 bar</b>`,
-  /* 79 */ `Check: needle at <b>–0.2 bar</b> (two marks before 0)`,
-  /* 80 */ LINE_CLOSE,
-  /* 81 */ `<b>CLOSE</b> the black VTI valve`,
-  /* 82 */ `Put the red plastic cap on`,
-  /* 83 */ `<b>CLOSE</b> the big cylinder handle (clockwise, to the RIGHT)`,
-  /* 84 */ `<b>CLOSE</b> the small black valve (clockwise)`,
-  /* 85 */ [`Take your gloves off. Go to the computer`, { ok: "✓ Stage A done → go to the computer" }],
+  { p: [1, 2, 3], t: `Is the fridge ready? You must get a <b>YES</b>`,
+    list: [`Go to the <b>Sample Exchange</b> tab`, `Click <b>“IS FRIDGE READY FOR SAMPLE EXCHANGE?”</b>`, `Check: green box says <b>YES</b>`],
+    stop: "Not YES → STOP. Do not start. Wait or ask.", photos: [1, "fridge-ready-yes.jpg"] },
+  { p: [5], t: `Check: black VTI valve is <b>CLOSED</b>` },
+  { p: [6], t: `Check: helium in-line valve is <b>CLOSED</b> (handle <b>ACROSS</b> the pipe)` },
+  { p: [7], t: `Attach the rough pump hose firmly` },
+  { p: [8], t: `Switch the rough pump <b>ON</b> (leave it ON)` },
+  { p: [9, 10], t: PUMP_OPEN_WAIT, timer: 30 },
+  { p: [11], t: PUMP_CLOSE },
+  { p: [12], t: `<b>OPEN</b> the big cylinder handle (counter-clockwise, to the LEFT)` },
+  { p: [13], t: `<b>OPEN</b> the small black valve (counter-clockwise)` },
+  { p: [14], t: `Check: adjuster knob 3 is lined up. <b>Do not turn it</b>` },
+  { p: [15, 16], t: LINE_OPEN_WAIT, timer: 5 },
+  { p: [17], t: LINE_CLOSE },
+  { p: [18, 19], t: PUMP_OPEN_WAIT, timer: 30 },
+  { p: [20], t: PUMP_CLOSE },
+  { p: [21, 22], t: LINE_OPEN_WAIT, timer: 5 },
+  { p: [23], t: LINE_CLOSE },
+  { p: [24, 25], t: PUMP_OPEN_WAIT, timer: 30 },
+  { p: [26], t: PUMP_CLOSE },
+  { p: [27], t: `<b>OPEN</b> the helium in-line valve and <b>LEAVE IT OPEN</b>` },
+  { p: [28, 29], t: `Unplug both cables`,
+    list: [`Cable <b>A</b> (black)`, `Cable <b>B</b> (orange “Probe”)`, `Grab the metal ring, not the wire`] },
+  { p: [30, 31], t: `<b>OPEN</b> the black VTI valve`,
+    list: [`Watch the gauge: needle passes <b>0</b>`, `You hear a <b>hiss</b>`] },
+  { p: [32], t: `Put on clean gloves 🧤` },
+  { p: [33, 34], t: `Open the KF clamp`, list: [`Loosen the wing-screw`, `Take the KF clamp off`] },
+  { p: [35], t: `Place the ladder, check it is steady, then climb up` },
+  { p: [36, 37], t: `Take the probe stick out and hang it on the hanger`,
+    list: [`Hold the top of the probe stick firmly`, `Lift it straight up, slowly, all the way out`, `Hang it on the hanger`] },
+  { p: [38], t: `Check the O-ring. If it moved, put it back and align it` },
+  { p: [39], t: `Put the dust cover on the hole, right away` },
+  { p: [41], t: `Grab the sample from the sides and pull it down (tweezers if cold)` },
+  { p: [42], t: `Put the sample in the sample box`, photos: [] },
+  { p: [43], t: `Keep your gloves on 🧤` },
+  { p: [44], t: `Find the black dot on the probe stick` },
+  { p: [45], t: `Mount the sample holder: V-cut side → black dot` },
+  { p: [47], t: `Take the dust cover off the hole` },
+  { p: [48], t: `Hang the dust cover on the side of the fridge` },
+  { p: [49], t: `Lower the probe stick straight down into the fridge` },
+  { p: [50], t: `Check: O-ring sits flat and in place` },
+  { p: [52, 53], t: `Plug in both cables`,
+    list: [`Cable <b>A</b> (black): turn the ring to lock`, `Cable <b>B</b> (orange “Probe”): hold the metal body`] },
+  { p: [54], t: `Put the KF clamp back on, then tighten the wing-screw`,
+    list: [`Snug, not over-tight`, `Check: you hear helium blowing out of the VTI valve`] },
+  { p: [55], id: "leak-restart", t: LINE_CLOSE },
+  { p: [56, 57, 58], t: PUMP_OPEN_WAIT, timer: 30, list: [`Check: needle reaches <b>–1 bar</b>`] },
+  { p: [59], t: PUMP_CLOSE },
+  { p: [60, 61, 62], photos: [60], t: `<b>LEAK CHECK:</b> watch the gauge for <b>1 min</b>`, timer: 60,
+    list: [`Needle must stay on <b>–1 bar</b>`],
+    stop: "Needle went up = LEAK → open KF clamp, clean O-ring with cloth + IPA, close clamp, then use the red button to go back.",
+    jump: "leak-restart", jumpLabel: "Needle went up → go back" },
+  { p: [63], t: LINE_TO_ZERO },
+  { p: [64], t: LINE_CLOSE },
+  { p: [65, 66], t: PUMP_OPEN_WAIT, timer: 30 },
+  { p: [67], t: PUMP_CLOSE },
+  { p: [68], t: LINE_TO_ZERO },
+  { p: [69], t: LINE_CLOSE },
+  { p: [70, 71], t: PUMP_OPEN_WAIT, timer: 30 },
+  { p: [72], t: PUMP_CLOSE },
+  { p: [73], t: `Switch the rough pump <b>OFF</b>` },
+  { p: [74, 75], t: `<b>OPEN</b> the helium in-line valve slowly until the needle is at <b>–0.2 bar</b>`,
+    list: [`That is two marks before 0`] },
+  { p: [76], t: LINE_CLOSE },
+  { p: [77], t: `<b>CLOSE</b> the black VTI valve` },
+  { p: [78], t: `Put the red plastic cap on` },
+  { p: [79], t: `<b>CLOSE</b> the big cylinder handle (clockwise, to the RIGHT)` },
+  { p: [80], t: `<b>CLOSE</b> the small black valve (clockwise)` },
+  { p: [81], t: `Take your gloves off. Go to the computer`, ok: "✓ Stage A done → go to the computer" },
 
   // ---------- Stage B · Software (VdP only) ----------
-  // Part 3 · Register & wire the sample (tab: Samples Wiring)
-  /* 86 */ `Click the <b>Samples Wiring</b> tab`,
-  /* 87 */ `Need another row? Click <b>+ Add Sample</b>`,
-  /* 88 */ `Type each sample ID in <b>Name</b> (e.g. QM122)`,
-  /* 89 */ `Check the corner geometry (Rxx, Ryy, Rxy)`,
-  /* 90 */ `Type the <b>NW line</b> number for every sample`,
-  /* 91 */ `Type the <b>NE line</b> number for every sample`,
-  /* 92 */ `Type the <b>SE line</b> number for every sample`,
-  /* 93 */ `Type the <b>SW line</b> number for every sample`,
-  /* 94 */ `Double-check every line number`,
-  /* 95 */ `Tick <b>Rxx</b>`,
-  /* 96 */ `Tick <b>Ryy</b>`,
-  /* 97 */ `Tick <b>Rxy</b>`,
-  // Part 4 · Phases & base settings (tab: Automation)
-  /* 98 */ `Click the <b>Automation</b> tab`,
-  /* 99 */ `Phase 1 Room-T B sweep: <b>UNTICK</b>`,
-  /* 100 */ `Phase 2 Cooldown: <b>TICK</b>`,
-  /* 101 */ `Phase 3 Magnet sweep: <b>TICK</b>`,
-  /* 102 */ `Phase 4 Hi-res B sweep: <b>TICK</b>`,
-  /* 103 */ `Phase 5 Warm-up: <b>TICK</b>`,
-  /* 104 */ `Pressure control = <b>Python custom PID</b>`,
-  /* 105 */ `Cooldown low P target = <b>7.50 mBar</b>`,
-  /* 106 */ `Cooldown base-T threshold = <b>2.50 K</b>`,
-  /* 107 */ `Sensitivity Step 1 Room-T = <b>Auto</b>`,
-  /* 108 */ `Sensitivity Step 2 Cooldown = <b>Auto</b>`,
-  /* 109 */ `Sensitivity Step 3 Magnet sweep = <b>Custom</b> (per-config)`,
-  /* 110 */ `Sensitivity Step 4 Hi-res = <b>Smart</b>`,
-  /* 111 */ `Sensitivity Step 5 Warm-up = <b>Auto</b>`,
-  /* 112 */ `Fixed-mode value = <b>10.000 mV</b>`,
-  /* 113 */ `Amplitude = <b>1.000 V</b>`,
-  /* 114 */ `Frequency = <b>17.777 Hz</b>`,
-  /* 115 */ `Time constant = <b>300 ms</b>`,
-  /* 116 */ `Bias resistor = <b>1.000 MΩ</b>`,
-  /* 117 */ `Lock-in settle = <b>2.0 s</b>`,
-  /* 118 */ `Switch settle (slow phases) = <b>1.00 s</b>`,
-  // Part 5 · Magnetic field (B) sweeps
-  /* 119 */ `Magnet sweep · Sweep mode = <b>Continuous</b>`,
-  /* 120 */ `Magnet sweep · B start = <b>−0.100 T</b>`,
-  /* 121 */ `Magnet sweep · B max = <b>6.000 T</b>`,
-  /* 122 */ `Magnet sweep · B step = <b>5.0 mT</b>`,
-  /* 123 */ `Magnet sweep · Ramp rate = <b>3.00 mT/s</b>`,
-  /* 124 */ `Magnet sweep · Ramp-back rate = <b>3.00 mT/s</b>`,
-  /* 125 */ `Magnet sweep · Switch settle = <b>1.50 s</b>`,
-  /* 126 */ `Hi-res · B start = <b>−0.100 T</b>`,
-  /* 127 */ `Hi-res · B stop = <b>6.000 T</b>`,
-  /* 128 */ `Hi-res · B step = <b>1.50 mT</b>`,
-  /* 129 */ `Hi-res · Ramp rate = <b>2.50 mT/s</b>`,
-  /* 130 */ `Hi-res · Post-switch warmup = <b>5.0 s</b>`,
-  // Part 6 · Warm-up & output
-  /* 131 */ `Warm-up target (heater) = <b>300.0 K</b>`,
-  /* 132 */ `Done at (exit condition) = <b>295.0 K</b>`,
-  /* 133 */ `Sample interval = <b>10 s</b>`,
-  /* 134 */ `Sample / run name: type a name + the date`,
-  /* 135 */ `Save folder: keep the current folder`,
-  // Part 7 · Start & monitor
-  /* 136 */ [`Check every value against this checklist`, { stop: "Not sure about any value? Do NOT start. Ask first." }],
-  /* 137 */ `Click <b>Start Automation</b>`,
-  /* 138 */ `Watch the log: phase, heater, pressure`,
-  /* 139 */ `Check the elapsed time / ETA bar`,
-].map((s, k) => {
-  const [title, opts] = Array.isArray(s) ? s : [s, {}];
-  const n = k + 1;
-  return { n, title, ...opts, img: opts.timer || n === 32 || n === 45 || n === 85 ? null : `s${String(n).padStart(3, "0")}.jpg` };
-});
+  { part: "Stage B · Part 3 · Samples Wiring tab", p: [82, 83, 84], t: `Write down the sample names`,
+    list: [`Click the <b>Samples Wiring</b> tab`, `Need another row? Click <b>+ Add Sample</b>`, `Type each sample ID in <b>Name</b> (e.g. QM122)`] },
+  { p: [85, 86, 87, 88, 89, 90], photos: [85, 90], t: `Write down the wiring`,
+    list: [`Check the corner geometry (Rxx, Ryy, Rxy)`, `Type the <b>NW</b>, <b>NE</b>, <b>SE</b> and <b>SW</b> line numbers for every sample`, `Double-check every line number`] },
+  { p: [91, 92, 93], t: `Tick all the boxes: <b>Rxx</b>, <b>Ryy</b>, <b>Rxy</b>` },
 
-function partOf(n) {
-  if (n <= 85)  return "Stage A · Top Loader · Unload + Load";
-  if (n <= 97)  return "Stage B · Part 3 · Samples Wiring tab";
-  if (n <= 118) return "Stage B · Part 4 · Automation tab";
-  if (n <= 130) return "Stage B · Part 5 · B sweeps";
-  if (n <= 135) return "Stage B · Part 6 · Warm-up & output";
-  return "Stage B · Part 7 · Start & monitor";
+  { part: "Stage B · Part 4 · Automation tab", p: [94], t: `Click the <b>Automation</b> tab` },
+  { p: [95, 96, 97, 98, 99], t: `Set the phase checkboxes`,
+    list: [`Phase 1 Room-T B sweep: <b>UNTICK</b>`, `Phase 2 Cooldown: <b>TICK</b>`, `Phase 3 Magnet sweep: <b>TICK</b>`, `Phase 4 Hi-res B sweep: <b>TICK</b>`, `Phase 5 Warm-up: <b>TICK</b>`] },
+  { p: [100, 101, 102], t: `Set pressure and cooldown`,
+    list: [`Pressure control = <b>Python custom PID</b>`, `Cooldown low P target = <b>7.50 mBar</b>`, `Cooldown base-T threshold = <b>2.50 K</b>`] },
+  { p: [103, 104, 105, 106, 107], t: `Set the sensitivity exactly like the photos`,
+    list: [`Step 1 Room-T = <b>Auto</b>`, `Step 2 Cooldown = <b>Auto</b>`, `Step 3 Magnet sweep = <b>Auto</b>`, `Step 4 Hi-res = <b>Smart</b>`, `Step 5 Warm-up = <b>Auto</b>`] },
+  { p: [108, 109, 110, 111, 112, 113, 114], t: `Set the lock-in values`,
+    list: [`Fixed-mode value = <b>10.000 mV</b>`, `Amplitude = <b>1.000 V</b>`, `Frequency = <b>17.777 Hz</b>`, `Time constant = <b>300 ms</b>`, `Bias resistor = <b>1.000 MΩ</b>`, `Lock-in settle = <b>2.0 s</b>`, `Switch settle (slow phases) = <b>1.50 s</b>`] },
+
+  { part: "Stage B · Part 5 · B sweeps", p: [115, 116, 117, 118, 119, 120, 121], t: `Set the Magnet sweep`,
+    list: [`Sweep mode = <b>Continuous</b>`, `B start = <b>−0.100 T</b>`, `B max = <b>6.000 T</b>`, `B step = <b>5.0 mT</b>`, `Ramp rate = <b>3.00 mT/s</b>`, `Ramp-back rate = <b>3.00 mT/s</b>`, `Switch settle = <b>1.50 s</b>`] },
+  { p: [122, 123, 124, 125, 126], t: `Set the Hi-res sweep`,
+    list: [`B start = <b>−0.100 T</b>`, `B stop = <b>6.000 T</b>`, `B step = <b>1.50 mT</b>`, `Ramp rate = <b>2.50 mT/s</b>`, `Post-switch warmup = <b>5.0 s</b>`] },
+
+  { part: "Stage B · Part 6 · Warm-up & output", p: [127, 128, 129], t: `Set the warm-up`,
+    list: [`Warm-up target (heater) = <b>300.0 K</b>`, `Done at (exit condition) = <b>295.0 K</b>`, `Sample interval = <b>10 s</b>`] },
+  { p: [130, 131, 132], t: `Name the run and check everything`,
+    list: [`Sample / run name: type a name + the date`, `Save folder: keep the current folder`, `Check every value against this checklist`],
+    stop: "Not sure about any value? Do NOT start. Ask first." },
+
+  { part: "Stage B · Part 7 · Start & monitor", p: [133], t: `Click <b>Start Automation</b>` },
+  { p: [134], t: `Watch the log: phase, heater, pressure` },
+  { p: [135], t: `Check the elapsed time / ETA bar` },
+  { part: "Stage B · Part 7 · Live Data tab", p: [136], t: `Monitor the resistance`,
+    list: [`Go to the <b>Live Data</b> tab`, `Y axis: <b>R — resistance</b>`] },
+  { p: [137], t: `Monitor the VTI temperature`, list: [`Y axis: <b>T_VTI — VTI Cernox</b>`] },
+  { p: [138], t: `Monitor the iTC probe temperature`, list: [`Y axis: <b>T_itc — iTC probe</b>`] },
+  { p: [139], t: `Monitor the pressure`, list: [`Y axis: <b>pressure — IVC</b>`] },
+];
+
+// Fill in step numbers, part names and photos.
+const NO_PHOTO = new Set([10, 16, 19, 22, 25, 32, 43, 57, 61, 66, 71, 81]); // timer / glove rows in the PDF
+{
+  let part = "Stage A · Top Loader · Unload + Load";
+  STEPS.forEach((s, k) => {
+    s.n = k + 1;
+    part = s.part || part; s.part = part;
+    s.photos = (s.photos || s.p).filter(p => !NO_PHOTO.has(p))
+      .map(p => typeof p === "string" ? p : `s${String(p).padStart(3, "0")}.jpg`);
+  });
 }
+const stepById = id => STEPS.find(s => s.id === id);
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -258,12 +220,12 @@ const plain = html => html.replace(/<[^>]+>/g, "");
 let i = -1;
 let who = null; // { name, when, samples, finished }
 try {
-  who = JSON.parse(localStorage.getItem("tl2_who"));
-  if (who) i = Math.min(+localStorage.getItem("tl2_step") || 0, STEPS.length);
+  who = JSON.parse(localStorage.getItem("tl3_who"));
+  if (who) i = Math.min(+localStorage.getItem("tl3_step") || 0, STEPS.length);
 } catch (e) {}
 
 function save() {
-  try { localStorage.setItem("tl2_step", i); localStorage.setItem("tl2_who", JSON.stringify(who)); } catch (e) {}
+  try { localStorage.setItem("tl3_step", i); localStorage.setItem("tl3_who", JSON.stringify(who)); } catch (e) {}
 }
 
 function nowLocal() {
@@ -284,7 +246,7 @@ function sms(msg) {
 }
 
 function stuckLink(step) {
-  const where = step ? `Step ${step.n} of ${STEPS.length} (${partOf(step.n)}): "${plain(step.title)}"` : "the start";
+  const where = step ? `Step ${step.n} of ${STEPS.length} (${step.part}): "${plain(step.t)}"` : "the start";
   let msg = `Hi Mehdi, I'm stuck at ${where}. Things do not look as usual. What should I do? I need help.`;
   if (who) msg += `\n\nLoading: ${who.samples}\nStarted: ${pretty(who.when)}\n– ${who.name}`;
   return sms(msg);
@@ -295,8 +257,10 @@ function doneLink() {
     `Loaded sample: ${who.samples}\nStarted: ${pretty(who.when)}\nFinished: ${pretty(who.finished)}\n\n– ${who.name}`);
 }
 
-function fig(src) {
-  return src ? `<figure><a href="img/${src}" target="_blank"><img src="img/${src}" alt="" onload="if(this.naturalWidth>this.naturalHeight*1.6)this.classList.add('wide')" onerror="this.closest('figure').remove()"></a><figcaption>Tap the photo to zoom</figcaption></figure>` : "";
+function figs(list) {
+  if (!list.length) return "";
+  return list.map(src => `<figure><a href="img/${src}" target="_blank"><img src="img/${src}" alt="" onload="if(this.naturalWidth>this.naturalHeight*1.6)this.classList.add('wide')" onerror="this.closest('figure').remove()"></a></figure>`).join("") +
+    `<figcaption>Tap a photo to zoom</figcaption>`;
 }
 
 // ---- countdown timer for "Wait" steps ----
@@ -378,24 +342,25 @@ function render() {
   }
 
   const s = STEPS[i];
-  $("part").textContent = partOf(s.n);
+  $("part").textContent = s.part;
   $("count").textContent = `${s.n} / ${total}`;
-  const isCheck = /^Check|LEAK CHECK/.test(plain(s.title));
+  const isCheck = /^Check|LEAK CHECK|^Is the/.test(plain(s.t));
   $("card").innerHTML =
-    `<div class="num">${s.n}</div><h1>${s.title}</h1>` +
+    `<div class="num">${s.n}</div><h1>${s.t}</h1>` +
+    (s.list ? `<ul class="todo">${s.list.map(x => `<li>${x}</li>`).join("")}</ul>` : "") +
     (s.timer ? `<div class="timer"><div class="clock" id="clock">${fmt(s.timer)}</div><button id="tbtn">▶ Start timer</button></div>` : "") +
     (s.stop ? `<div class="stop">⚠ ${s.stop}</div>` : "") +
     (s.ok ? `<div class="ok">${s.ok}</div>` : "") +
-    fig(s.img) +
-    `<div class="ask">${s.timer ? "Did the time pass?" : isCheck ? "Does it look right?" : "Did you do this step?"}</div>`;
+    figs(s.photos) +
+    `<div class="ask">${s.timer ? TIMER_HINT : isCheck ? "Does it look right?" : "Did you do this step?"}</div>`;
   $("btns").innerHTML =
     `<button class="yes" id="yes">✓ Yes, done</button>
-     ${s.jump ? `<button class="leak" id="jump">${s.jumpLabel}</button>` : ""}
+     ${s.jump ? `<button class="leak" id="jump">${s.jumpLabel} to step ${stepById(s.jump).n}</button>` : ""}
      <a class="btn help" href="${stuckLink(s)}">✋ I'm stuck – text Mehdi</a>
      <button class="back" id="prev">‹ Back</button>`;
   if (s.timer) setupTimer(s.timer);
   $("yes").onclick = () => { i++; render(); };
-  if (s.jump) $("jump").onclick = () => { i = s.jump - 1; render(); };
+  if (s.jump) $("jump").onclick = () => { i = stepById(s.jump).n - 1; render(); };
   $("prev").onclick = () => { i--; render(); };
 }
 
